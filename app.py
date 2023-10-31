@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import cv2
-#import faiss-gpu
+import faiss
 import gradio as gr
 
 from PIL import Image
@@ -71,7 +71,24 @@ def checkin(img):
     embs, imm_classes, id_names = aa["embs"], aa["imm_classes"], aa["id_names"]
     embs, img_class = embs.astype("float32"), imm_classes.astype("int")
     
+    #find embedding vector
+    dimensions = 512
+    index = faiss.IndexFlatIP(dimensions)
+    index.add(embs.astype(np.float32))
+
+    k = 1
+    target_representation = np.array(emb, dtype='f')
+    target_representation = np.expand_dims(target_representation, axis=0)
+    # trả về k similarity và id của vector đại diện tương tự nhất với vector hiện tại
+    distances, neighbors = index.search(target_representation, k)
     
+    threshold = 0.32
+    if(distances[0] > threshold):
+        # tìm trong danh sách ảnh ở tập train, ảnh nào có identity = neighbor hiện tại
+        id_list = np.argwhere(imm_classes == neighbors.tolist()[0])
+        return f'Welcome {id_names[id_list[0]]}'
+    else:
+        return f'User is not found'
 
 with gr.Blocks() as demo:
     with gr.Tab("Register"):
@@ -94,6 +111,6 @@ with gr.Blocks() as demo:
                 img5 = gr.Image()
 
     btnRegister.click(register, inputs=[img1, img2, img3, txtIdName], outputs=label1)
-    #btnCheckin.click(checkin, inputs=img4, outputs=label2)  
+    btnCheckin.click(checkin, inputs=img4, outputs=label2)  
     
 demo.launch(share=True)
