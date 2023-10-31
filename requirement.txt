@@ -1,0 +1,6 @@
+#pip install glob2
+#pip install scikit-image
+pip install faiss
+
+pip install mtcnn
+pip install opencv-python
